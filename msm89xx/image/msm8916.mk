@@ -179,3 +179,21 @@ define Device/generic-uf896
 endef
 TARGET_DEVICES += generic-uf896
 endif
+
+define Device/generic-jz02
+	$(Device/msm8916)
+	DEVICE_VENDOR := Generic
+	DEVICE_MODEL := JZ02 4G LTE MiFi
+	DEVICE_DTS := msm8916-generic-jz02
+	SUPPORTED_DEVICES := jz02,generic
+	FILESYSTEMS := squashfs
+	GPT_TOT_SECTORS := 7634944
+	GPT_RECOVERY := 1
+	DEVICE_PACKAGES := msm89xx-scripts wpad-basic-wolfssl rmtfs uci-usb-gadget \
+		block-mount f2fs-tools tar \
+		msm-firmware-dumper reboot-edl qcom-carrier-autocfg \
+		diag-efs diag-logtool msm89xx-firmware-upgrade luci-app-update-notify \
+		luci-app-battery
+endef
+TARGET_DEVICES += generic-jz02
+
