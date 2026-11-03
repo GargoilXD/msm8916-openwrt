@@ -1,0 +1,315 @@
+--- /dev/null
++++ b/arch/arm64/boot/dts/qcom/msm8916-generic-jz02.dts
+@@ -0,0 +1,312 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * JZ02 — generic 3-SIM battery MiFi, Qualcomm MSM8916.
++ *
++ * Hardware facts recovered from the stock Android 4.4.4 firmware
++ * (eng.richal.20250520) on 2026-11-03:
++ *   - stock DTB: arch/arm64/boot/dts/qcom/msm8916-generic-jz02.dts
++ *     (the vendor ships the plain "MSM 8916 MTP" DTB, board-id <0x08 0x00>)
++ *   - GPIO map read live from /sys/kernel/debug/gpio and confirmed against
++ *     the stock DTB's /soc/gpio-leds and /soc/gpio_keys nodes
++ *   - SIM switch semantics documented at https://softs.im/jz02/
++ *
++ * SIM slots (stock Android names, kept verbatim so userspace can drive them):
++ *   sim1_switch_gpio  GPIO22  embedded / solder SIM
++ *   sim2_switch_gpio  GPIO23  second SIM
++ *   sim3_switch_gpio  GPIO1   external slot
++ *   sim_hotdet_gpio   GPIO20  re-announce pulse
++ *
++ * To select a slot: pulse sim_hotdet high, set exactly one switch high,
++ * wait, drop sim_hotdet.  See base-files/etc/init.d/sim-select.
++ */
++
++/dts-v1/;
++
++#include "msm8916-ufi.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/leds/common.h>
++
++/ {
++	model = "JZ02 4G LTE MiFi";
++	compatible = "jz02,generic", "qcom,msm8916";
++
++	/*
++	 * The stock Android DT carries a generic "palladium_1500mah"
++	 * profile: 4.2 V max, 3.4 V cutoff, 1500 mAh.  The physical cell is
++	 * marked 505060AR, 3.8 V nominal / 4.35 V charge limit / 2100 mAh.
++	 * We keep the conservative stock 4.2 V limit (the BMS calibration
++	 * shipped with the device is built around it); raise to 4.35 V only
++	 * after verifying the pack and the gauge.
++	 */
++	battery: battery {
++		compatible = "simple-battery";
++		device-chemistry = "lithium-ion-polymer";
++
++		voltage-min-design-microvolt = <3400000>;
++		voltage-max-design-microvolt = <4200000>;
++		charge-full-design-microamp-hours = <1500000>;
++		charge-term-current-microamp = <100000>;
++
++		constant-charge-current-max-microamp = <1000000>;
++		constant-charge-voltage-max-microvolt = <4200000>;
++
++		factory-internal-resistance-micro-ohms = <140000>;
++
++		/* OCV -> state-of-charge, 5 temperatures x 31 points (4.2 V Li-ion). */
++		ocv-capacity-celsius = <(-20) 0 25 40 60>;
++
++		ocv-capacity-table-0 =
++			<4150000 100>, <4120000 95>, <4085000 90>, <4050000 85>,
++			<4015000 80>, <3950000 75>, <3906000 70>, <3864000 65>,
++			<3826000 60>, <3809000 55>, <3798000 50>, <3787000 45>,
++			<3776000 40>, <3755000 35>, <3735000 30>, <3715000 25>,
++			<3680000 20>, <3620000 16>, <3583000 13>, <3563000 11>,
++			<3553000 10>, <3530000 9>, <3520000 8>, <3490000 7>,
++			<3460000 6>, <3440000 5>, <3410000 4>, <3390000 3>,
++			<3370000 2>, <3360000 1>, <3350000 0>;
++
++		ocv-capacity-table-1 =
++			<4150000 100>, <4125000 95>, <4090000 90>, <4065000 85>,
++			<4022000 80>, <3989000 75>, <3949000 70>, <3902000 65>,
++			<3877000 60>, <3837000 55>, <3810000 50>, <3789000 45>,
++			<3776000 40>, <3755000 35>, <3735000 30>, <3715000 25>,
++			<3680000 20>, <3620000 16>, <3583000 13>, <3563000 11>,
++			<3553000 10>, <3530000 9>, <3520000 8>, <3490000 7>,
++			<3460000 6>, <3440000 5>, <3410000 4>, <3390000 3>,
++			<3370000 2>, <3360000 1>, <3350000 0>;
++
++		ocv-capacity-table-2 =
++			<4150000 100>, <4125000 95>, <4090000 90>, <4065000 85>,
++			<4022000 80>, <3989000 75>, <3949000 70>, <3902000 65>,
++			<3877000 60>, <3837000 55>, <3810000 50>, <3789000 45>,
++			<3776000 40>, <3755000 35>, <3735000 30>, <3715000 25>,
++			<3680000 20>, <3620000 16>, <3583000 13>, <3563000 11>,
++			<3553000 10>, <3530000 9>, <3520000 8>, <3490000 7>,
++			<3460000 6>, <3440000 5>, <3410000 4>, <3390000 3>,
++			<3370000 2>, <3360000 1>, <3350000 0>;
++
++		ocv-capacity-table-3 =
++			<4150000 100>, <4125000 95>, <4090000 90>, <4065000 85>,
++			<4022000 80>, <3989000 75>, <3949000 70>, <3902000 65>,
++			<3877000 60>, <3837000 55>, <3810000 50>, <3789000 45>,
++			<3776000 40>, <3755000 35>, <3735000 30>, <3715000 25>,
++			<3680000 20>, <3620000 16>, <3583000 13>, <3563000 11>,
++			<3553000 10>, <3530000 9>, <3520000 8>, <3490000 7>,
++			<3460000 6>, <3440000 5>, <3410000 4>, <3390000 3>,
++			<3370000 2>, <3360000 1>, <3350000 0>;
++
++		ocv-capacity-table-4 =
++			<4149000 100>, <4125000 95>, <4090000 90>, <4065000 85>,
++			<4022000 80>, <3989000 75>, <3949000 70>, <3902000 65>,
++			<3877000 60>, <3837000 55>, <3810000 50>, <3789000 45>,
++			<3776000 40>, <3755000 35>, <3735000 30>, <3715000 25>,
++			<3680000 20>, <3620000 16>, <3583000 13>, <3563000 11>,
++			<3553000 10>, <3530000 9>, <3520000 8>, <3490000 7>,
++			<3460000 6>, <3440000 5>, <3410000 4>, <3390000 3>,
++			<3370000 2>, <3360000 1>, <3350000 0>;
++	};
++};
++
++/* Persistent kernel log (ramoops) — same region as every other board. */
++&reserved_memory {
++	ramoops@8db00000 {
++		compatible = "ramoops";
++		reg = <0x0 0x8db00000 0x0 0x00100000>;
++		record-size = <0x00040000>;
++		console-size = <0x00040000>;
++		pmsg-size = <0x00040000>;
++		ecc-size = <16>;
++	};
++};
++
++/*
++ * Status LEDs.
++ *
++ * Stock Android labels -> GPIO (from the stock DTB):
++ *   green   120   green2   11   red   36   red2   8
++ *   blue      7   yellow    9
++ *   green_sec 117  green2_sec 121  red_sec 119  red2_sec 10
++ *   blue_sec  6    yellow_sec 31
++ *
++ * The stock panel is a pair of red/green/blue/yellow lamps plus a second
++ * red/green pair.  The mapping below is the best reading of the stock
++ * labels; confirm each lamp by writing 1 to its brightness and observing
++ * the physical unit (see port/README.md).
++ */
++&{/leds} {
++	/delete-node/ led-r;
++	/delete-node/ led-g;
++	/delete-node/ led-b;
++
++	led-wan-green {
++		function = LED_FUNCTION_WAN;
++		color = <LED_COLOR_ID_GREEN>;
++		gpios = <&tlmm 120 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++
++	led-wlan-green {
++		function = LED_FUNCTION_WLAN;
++		color = <LED_COLOR_ID_GREEN>;
++		gpios = <&tlmm 11 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++
++	led-wan-red {
++		function = LED_FUNCTION_WAN;
++		color = <LED_COLOR_ID_RED>;
++		gpios = <&tlmm 36 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++
++	led-wlan-red {
++		function = LED_FUNCTION_WLAN;
++		color = <LED_COLOR_ID_RED>;
++		gpios = <&tlmm 8 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++
++	led-wan-blue {
++		function = LED_FUNCTION_WAN;
++		color = <LED_COLOR_ID_BLUE>;
++		gpios = <&tlmm 7 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++
++	led-charging {
++		label = "yellow:charging";
++		gpios = <&tlmm 9 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++
++	/* Secondary lines, kept for completeness / future use. */
++	led-green-sec {
++		label = "green_sec";
++		gpios = <&tlmm 117 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++	led-green2-sec {
++		label = "green2_sec";
++		gpios = <&tlmm 121 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++	led-red-sec {
++		label = "red_sec";
++		gpios = <&tlmm 119 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++	led-red2-sec {
++		label = "red2_sec";
++		gpios = <&tlmm 10 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++	led-blue-sec {
++		label = "blue_sec";
++		gpios = <&tlmm 6 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++	led-yellow-sec {
++		label = "yellow_sec";
++		gpios = <&tlmm 31 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++
++	/*
++	 * SIM switch lines.  Keep the exact stock labels: userspace writes
++	 * /sys/class/leds/sim1_switch_gpio/brightness etc.
++	 */
++	led-sim1 {
++		label = "sim1_switch_gpio";
++		gpios = <&tlmm 22 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++	led-sim2 {
++		label = "sim2_switch_gpio";
++		gpios = <&tlmm 23 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++	led-sim3 {
++		label = "sim3_switch_gpio";
++		gpios = <&tlmm 1 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++	led-sim-hotdet {
++		label = "sim_hotdet_gpio";
++		gpios = <&tlmm 20 GPIO_ACTIVE_HIGH>;
++		default-state = "off";
++		retain-state-suspended;
++	};
++};
++
++&gpio_leds_default {
++	pins = "gpio1", "gpio6", "gpio7", "gpio8", "gpio9", "gpio10",
++	       "gpio11", "gpio20", "gpio22", "gpio23", "gpio31",
++	       "gpio36", "gpio117", "gpio119", "gpio120", "gpio121";
++};
++
++/*
++ * Buttons (from the stock DTB's /soc/gpio_keys):
++ *   key_f2  GPIO37  active-high  linux,code 60
++ *   key_f3  GPIO107 active-low   linux,code 61
++ *
++ * The physical "Reset" pinhole is one of these two.  Confirm on hardware
++ * with `evtest` / `getevent`; button_restart is mapped to key_f2 for now.
++ */
++&button_restart {
++	gpios = <&tlmm 37 GPIO_ACTIVE_HIGH>;
++};
++
++&button_default {
++	pins = "gpio37";
++	bias-pull-down;
++};
++
++/*
++ * PM8916 linear charger + VM-BMS.  The stock DT enables both
++ * (qcom,qpnp-linear-charger / qcom,qpnp-vm-bms) and reports
++ * battery-type "palladium_1500mah".
++ */
++&pm8916_usbin {
++	status = "disabled";
++};
++
++&pm8916_charger {
++	monitored-battery = <&battery>;
++
++	qcom,fast-charge-safe-voltage = <4200000>;
++	qcom,fast-charge-safe-current = <1000000>;
++
++	status = "okay";
++};
++
++&pm8916_bms {
++	monitored-battery = <&battery>;
++	power-supplies = <&pm8916_charger>;
++
++	status = "okay";
++};
++
++&usb {
++	dr_mode = "peripheral";
++	extcon = <&pm8916_charger>;
++};
++
++&usb_hs_phy {
++	extcon = <&pm8916_charger>;
++};
